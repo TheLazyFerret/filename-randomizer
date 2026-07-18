@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.24)
 
 ### Project declaration.
-project(template_name
+project(filename-randomizer
   VERSION 0.0    # Version of the program.
   LANGUAGES CXX  # Programming language.
 )
