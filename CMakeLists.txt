@@ -19,6 +19,7 @@ endif()
 ### Create the executable of the program.
 add_executable(${PROJECT_NAME}
   src/main.cpp
+  src/utils/utils.cpp
 )
 
 ### Compilation options.
