@@ -24,8 +24,8 @@ std::uint64_t utils::random_number() noexcept {
   return distribution(gen);
 }
 
-/// Return a set with the paths to all the regular files in a directory.
-std::expected<std::unordered_set<fs::path>, std::error_code> utils::files_in_directory(
+/// Return a set with the paths in a directory.
+std::expected<std::unordered_set<fs::path>, std::error_code> utils::paths_in_directory(
     const std::filesystem::path& path) {
   std::error_code ec;
   std::unordered_set<fs::path> path_set;
@@ -40,11 +40,7 @@ std::expected<std::unordered_set<fs::path>, std::error_code> utils::files_in_dir
     return std::unexpected(ec);
   }
   for (const auto& dir_entry : dir_iterator) {
-    if (dir_entry.is_regular_file(ec)) {
-      path_set.insert(dir_entry.path());
-    } else if (ec.value() != 0) {
-      return std::unexpected(ec);
-    }
+    path_set.insert(dir_entry.path());
   }
   return {path_set};
 }
@@ -79,6 +75,4 @@ std::unordered_set<fs::path> utils::generate_randomized_paths(const std::unorder
 }
 
 /// Main method of the program.
-std::expected<void, std::error_code> utils::randmize_filename() {
-  return {};
-}
+std::expected<void, std::error_code> utils::randmize_filename() { return {}; }
