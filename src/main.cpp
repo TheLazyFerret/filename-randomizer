@@ -6,13 +6,12 @@
 #include <print>
 
 int main(/*int argc, char** argv*/) {
-  const auto result = utils::files_in_directory("invalid_dir");
+  const auto result = utils::files_in_directory(".");
   if (!result) {
     std::println("{}", result.error().message());
     return EXIT_FAILURE;
   }
-  for (const auto& path : result.value()) {
-    std::println("{}", path.string());
-  }
+  const auto result2 = utils::generate_randomized_paths(result.value());
+
   return EXIT_SUCCESS;
 }
