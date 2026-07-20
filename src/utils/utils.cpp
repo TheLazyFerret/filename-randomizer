@@ -149,6 +149,7 @@ std::set<std::pair<fs::path, fs::path>> utils::create_path_pair_set(
   auto new_path_set_iter = new_path_set.begin();
   for (const auto& iter : old_path_set) {
     set.insert(std::make_pair(iter, *new_path_set_iter));
+    ++new_path_set_iter;
   }
   return set;
 }
