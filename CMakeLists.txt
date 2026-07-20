@@ -21,6 +21,7 @@ add_executable(${PROJECT_NAME}
   src/main.cpp
   src/utils/utils.cpp
   src/hash/sha256.cpp
+  src/argparse/argparse.cpp
 )
 
 ### Compilation options.
