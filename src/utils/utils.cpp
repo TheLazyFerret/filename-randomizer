@@ -106,3 +106,25 @@ std::unordered_set<fs::path> utils::generate_random_path_set(const std::unordere
   assert(randomized_path_set.size() == path_set.size());
   return randomized_path_set;
 }
+
+/// Small wrapper around std::filesystem::is_regular_file to work with expected.
+std::expected<bool, std::error_code> utils::is_regular_file_wrapper(const fs::path& path) {
+  std::error_code ec;
+  if (fs::is_regular_file(path, ec)) {
+    return true;
+  } else if (ec.value() != 0) {
+    return std::unexpected(ec);
+  }
+  return false;
+}
+
+/// Small wrapper around std::filesystem::is_directort to work with expected.
+std::expected<bool, std::error_code> utils::is_directory_wrapper(const fs::path& path) {
+  std::error_code ec;
+  if (fs::is_directory(path, ec)) {
+    return true;
+  } else if (ec.value() != 0) {
+    return std::unexpected(ec);
+  }
+  return false;
+}
