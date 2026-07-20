@@ -5,11 +5,17 @@
 #include <cstdint>
 #include <expected>
 #include <filesystem>
+#include <set>
 #include <system_error>
-#include <unordered_map>
 #include <unordered_set>
+#include <utility>
 
 namespace utils {
+
+void print_path_set(const std::set<std::pair<std::filesystem::path, std::filesystem::path>>&);
+
+std::set<std::pair<std::filesystem::path, std::filesystem::path>> create_path_pair_set(
+    const std::unordered_set<std::filesystem::path>&, const std::unordered_set<std::filesystem::path>&);
 
 std::uint64_t random_number() noexcept;
 
@@ -23,7 +29,7 @@ std::expected<std::unordered_set<std::filesystem::path>, std::error_code> filter
     const std::unordered_set<std::filesystem::path>&);
 
 std::expected<void, std::error_code> mass_rename(
-    const std::unordered_map<std::filesystem::path, std::filesystem::path>&);
+    const std::set<std::pair<std::filesystem::path, std::filesystem::path>>&, const bool nonstop = false);
 
 std::filesystem::path generate_random_path(const std::unordered_set<std::filesystem::path>&, std::filesystem::path);
 

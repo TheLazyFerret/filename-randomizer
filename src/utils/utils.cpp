@@ -11,6 +11,7 @@
 #include <random>
 #include <system_error>
 #include <unordered_set>
+#include <utility>
 
 namespace fs = std::filesystem;
 
@@ -61,14 +62,19 @@ std::expected<std::unordered_set<fs::path>, std::error_code> utils::filter_regul
 }
 
 /// Rename all the paths from og_path, to a not deterministic from new_path.
-std::expected<void, std::error_code> utils::mass_rename(const std::unordered_map<fs::path, fs::path>& map) {
+std::expected<void, std::error_code> utils::mass_rename(
+    const std::set<std::pair<std::filesystem::path, std::filesystem::path>>& set, bool nonstop) {
   std::error_code ec;
-  for (const auto& iter : map) {
+  for (const auto& iter : set) {
     const auto& old_path = iter.first;
     const auto& new_path = iter.second;
     fs::rename(old_path, new_path, ec);
-    if (ec.value() != 0) {
+    if (ec.value() != 0 && nonstop == false) {
+      std::println("Error renaming file ({}): {}. Stopping", ec.message(), old_path.string());
       return std::unexpected(ec);
+    } else if (ec.value() != 0 && nonstop == true) {
+      std::println("Error renaming file ({}): {}.", ec.message(), old_path.string());
+      continue;
     }
   }
   return {};
@@ -100,7 +106,6 @@ std::unordered_set<fs::path> utils::generate_random_path_set(const std::unordere
     while (randomized_path_set.contains(new_path)) {
       new_path = utils::generate_random_path(path_set, path);
     }
-    std::println("{} -> {}", path.string(), new_path.string());
     randomized_path_set.insert(new_path);
   }
   assert(randomized_path_set.size() == path_set.size());
@@ -127,4 +132,23 @@ std::expected<bool, std::error_code> utils::is_directory_wrapper(const fs::path&
     return std::unexpected(ec);
   }
   return false;
+}
+
+/// Print the map with pairs of paths with a cute format :3
+void utils::print_path_set(const std::set<std::pair<fs::path, fs::path>>& set) {
+  for (const auto& iter : set) {
+    std::println("{} -> {}", iter.first.string(), iter.second.string());
+  }
+}
+
+/// Set to each old path (key) to a new path (value);
+std::set<std::pair<fs::path, fs::path>> utils::create_path_pair_set(
+    const std::unordered_set<fs::path>& old_path_set, const std::unordered_set<fs::path>& new_path_set) {
+  assert(new_path_set.size() >= old_path_set.size());
+  std::set<std::pair<fs::path, fs::path>> set;
+  auto new_path_set_iter = new_path_set.begin();
+  for (const auto& iter : old_path_set) {
+    set.insert(std::make_pair(iter, *new_path_set_iter));
+  }
+  return set;
 }
