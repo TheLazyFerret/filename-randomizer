@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include <cstdint>
 #include <expected>
 #include <filesystem>
 #include <set>
@@ -28,8 +27,13 @@ std::expected<std::unordered_set<std::filesystem::path>, std::error_code> paths_
 std::expected<std::unordered_set<std::filesystem::path>, std::error_code> filter_regular_files(
     const std::unordered_set<std::filesystem::path>&);
 
+struct MassRenameOptions {
+  bool nonstop = false;
+  bool print = false;
+};
+
 std::expected<void, std::error_code> mass_rename(
-    const std::set<std::pair<std::filesystem::path, std::filesystem::path>>&, const bool nonstop = false);
+    const std::set<std::pair<std::filesystem::path, std::filesystem::path>>&, const MassRenameOptions);
 
 std::filesystem::path generate_random_path(const std::unordered_set<std::filesystem::path>&, std::filesystem::path);
 

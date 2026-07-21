@@ -17,6 +17,14 @@ namespace fs = std::filesystem;
 
 using namespace hash::sha256;
 
+/// Print the map with pairs of paths with a cute format :3
+/// Mostly for debugging.
+void utils::print_path_set(const std::set<std::pair<fs::path, fs::path>>& set) {
+  for (const auto& iter : set) {
+    std::println("{} -> {}", iter.first.string(), iter.second.string());
+  }
+}
+
 /// Single thread random number generator.
 std::uint64_t utils::random_number() noexcept {
   static std::random_device rd;
@@ -25,7 +33,30 @@ std::uint64_t utils::random_number() noexcept {
   return distribution(gen);
 }
 
-/// Return a set with the paths in a directory.
+/// Small wrapper around std::filesystem::is_regular_file to work with std::expected.
+std::expected<bool, std::error_code> utils::is_regular_file_wrapper(const fs::path& path) {
+  std::error_code ec;
+  if (fs::is_regular_file(path, ec)) {
+    return true;
+  } else if (ec.value() != 0) {
+    return std::unexpected(ec);
+  }
+  return false;
+}
+
+/// Small wrapper around std::filesystem::is_directort to work with std::expected.
+std::expected<bool, std::error_code> utils::is_directory_wrapper(const fs::path& path) {
+  std::error_code ec;
+  if (fs::is_directory(path, ec)) {
+    return true;
+  } else if (ec.value() != 0) {
+    return std::unexpected(ec);
+  }
+  return false;
+}
+
+/// Return a set with all the paths in a directory. Simply as that.
+/// The path can point to anything, including files and directories.
 std::expected<std::unordered_set<fs::path>, std::error_code> utils::paths_in_directory(
     const std::filesystem::path& path) {
   std::error_code ec;
@@ -61,18 +92,24 @@ std::expected<std::unordered_set<fs::path>, std::error_code> utils::filter_regul
   return filtered_set;
 }
 
-/// Rename all the paths from og_path, to a not deterministic from new_path.
+/// Rename iteratively all paths in the first value of the pair to the second value.
+/// It does not check if there is no collision.
 std::expected<void, std::error_code> utils::mass_rename(
-    const std::set<std::pair<std::filesystem::path, std::filesystem::path>>& set, bool nonstop) {
+    const std::set<std::pair<std::filesystem::path, std::filesystem::path>>& set, const MassRenameOptions ops) {
   std::error_code ec;
+  // For each pair [old_path, new_path].
   for (const auto& iter : set) {
     const auto& old_path = iter.first;
     const auto& new_path = iter.second;
+    if (ops.print) {
+      // Print the change.
+      std::println("{} -> {}", old_path.string(), new_path.string());
+    }
     fs::rename(old_path, new_path, ec);
-    if (ec.value() != 0 && nonstop == false) {
+    if (ec.value() != 0 && ops.nonstop == false) {
       std::println("Error renaming file ({}): {}. Stopping", ec.message(), old_path.string());
       return std::unexpected(ec);
-    } else if (ec.value() != 0 && nonstop == true) {
+    } else if (ec.value() != 0 && ops.nonstop == true) {
       std::println("Error renaming file ({}): {}.", ec.message(), old_path.string());
       continue;
     }
@@ -82,14 +119,21 @@ std::expected<void, std::error_code> utils::mass_rename(
 
 /// Generate an unique path with a randomized filename from the original path.
 /// It is garantized that new path will no collision with an existent one in the set.
+/// Pass by copy the parameter path and modify it, avoiding copying it inside the function.
+/// Probably has non impact in the performance, but idk, looks cooler :)
 fs::path utils::generate_random_path(const std::unordered_set<fs::path>& set, fs::path path) {
   assert(set.contains(path));
-  const auto gen_name = [](std::string filename, const std::string& extension) -> std::string {
+  // Anonymous function to reduce boilerplate.
+  auto gen_name = [](std::string filename, const std::string& extension) -> std::string {
     filename += std::to_string(utils::random_number());
     const auto aux = sha256_to_string(sha256({filename.begin(), filename.end()}));
     return aux + extension;
   };
+  // We use only the filename instead of the full path attempting to reduce the number of blocks
+  // during the sha256.
+  path.replace_filename(gen_name(path.filename().string(), path.extension().string()));
   while (set.contains(path)) {
+    std::println("Collision with the hash: {}. Generating a new one.", path.filename().string());
     path.replace_filename(gen_name(path.filename().string(), path.extension().string()));
   }
   return path;
@@ -97,13 +141,15 @@ fs::path utils::generate_random_path(const std::unordered_set<fs::path>& set, fs
 
 /// Get a set of paths with randomized filenames.
 /// It is garantized that the new set is the same size as the passed.
-/// It is also garantized that the new set has no collision with the original set.
+/// It is also garantized that the new set has no collision with the original set
+///   because internally calls utils::generate_random_path().
 std::unordered_set<fs::path> utils::generate_random_path_set(const std::unordered_set<fs::path>& path_set) {
   std::unordered_set<fs::path> randomized_path_set;
   for (const auto& path : path_set) {
     // Inside the function checks the generated path has no collision with the original set.
     auto new_path = utils::generate_random_path(path_set, path);
     while (randomized_path_set.contains(new_path)) {
+      std::println("Collision with the hash: {}. Generating a new one.", path.filename().string());
       new_path = utils::generate_random_path(path_set, path);
     }
     randomized_path_set.insert(new_path);
@@ -112,36 +158,10 @@ std::unordered_set<fs::path> utils::generate_random_path_set(const std::unordere
   return randomized_path_set;
 }
 
-/// Small wrapper around std::filesystem::is_regular_file to work with expected.
-std::expected<bool, std::error_code> utils::is_regular_file_wrapper(const fs::path& path) {
-  std::error_code ec;
-  if (fs::is_regular_file(path, ec)) {
-    return true;
-  } else if (ec.value() != 0) {
-    return std::unexpected(ec);
-  }
-  return false;
-}
-
-/// Small wrapper around std::filesystem::is_directort to work with expected.
-std::expected<bool, std::error_code> utils::is_directory_wrapper(const fs::path& path) {
-  std::error_code ec;
-  if (fs::is_directory(path, ec)) {
-    return true;
-  } else if (ec.value() != 0) {
-    return std::unexpected(ec);
-  }
-  return false;
-}
-
-/// Print the map with pairs of paths with a cute format :3
-void utils::print_path_set(const std::set<std::pair<fs::path, fs::path>>& set) {
-  for (const auto& iter : set) {
-    std::println("{} -> {}", iter.first.string(), iter.second.string());
-  }
-}
-
-/// Set to each old path (key) to a new path (value);
+/// Set to each old path (key) to a new path (value).
+/// Basically just merge two sets (where the second one is equal or bigger than the first one),
+///   in a single set made of pairs.
+/// Use std::set instead of std::unordered_set because compiler cried about std::pair not being hashable.
 std::set<std::pair<fs::path, fs::path>> utils::create_path_pair_set(
     const std::unordered_set<fs::path>& old_path_set, const std::unordered_set<fs::path>& new_path_set) {
   assert(new_path_set.size() >= old_path_set.size());
