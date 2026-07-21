@@ -27,13 +27,15 @@ std::expected<std::unordered_set<std::filesystem::path>, std::error_code> paths_
 std::expected<std::unordered_set<std::filesystem::path>, std::error_code> filter_regular_files(
     const std::unordered_set<std::filesystem::path>&);
 
-struct MassRenameOptions {
+struct RenameOptions {
   bool nonstop = false;
   bool print = false;
 };
 
 std::expected<void, std::error_code> mass_rename(
-    const std::set<std::pair<std::filesystem::path, std::filesystem::path>>&, const MassRenameOptions);
+    const std::set<std::pair<std::filesystem::path, std::filesystem::path>>&, const RenameOptions);
+
+std::expected<void, std::error_code> rename(const std::pair<std::filesystem::path, std::filesystem::path>&, const RenameOptions);
 
 std::filesystem::path generate_random_path(const std::unordered_set<std::filesystem::path>&, std::filesystem::path);
 

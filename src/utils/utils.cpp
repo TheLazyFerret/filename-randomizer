@@ -94,25 +94,36 @@ std::expected<std::unordered_set<fs::path>, std::error_code> utils::filter_regul
 
 /// Rename iteratively all paths in the first value of the pair to the second value.
 /// It does not check if there is no collision.
+/// Internally just call utils::rename().
 std::expected<void, std::error_code> utils::mass_rename(
-    const std::set<std::pair<std::filesystem::path, std::filesystem::path>>& set, const MassRenameOptions ops) {
-  std::error_code ec;
+    const std::set<std::pair<std::filesystem::path, std::filesystem::path>>& set, const RenameOptions ops) {
   // For each pair [old_path, new_path].
   for (const auto& iter : set) {
-    const auto& old_path = iter.first;
-    const auto& new_path = iter.second;
-    if (ops.print) {
-      // Print the change.
-      std::println("{} -> {}", old_path.string(), new_path.string());
-    }
-    fs::rename(old_path, new_path, ec);
-    if (ec.value() != 0 && ops.nonstop == false) {
-      std::println("Error renaming file ({}): {}. Stopping", ec.message(), old_path.string());
-      return std::unexpected(ec);
-    } else if (ec.value() != 0 && ops.nonstop == true) {
-      std::println("Error renaming file ({}): {}.", ec.message(), old_path.string());
+    const auto result = rename(iter, ops);
+    if (!result && ops.nonstop) {
+      std::println("Error with file {} ({}). Continuing", iter.first.string(), result.error().message());
       continue;
+    } else if (!result && !ops.nonstop) {
+      std::println("Error with file {} ({}). Continuing", iter.first.string(), result.error().message());
+      return std::unexpected(result.error());
     }
+  }
+  return {};
+}
+
+/// Rename a single pair old_path -> new_path.
+std::expected<void, std::error_code> utils::rename(
+    const std::pair<std::filesystem::path, std::filesystem::path>& pair, const RenameOptions ops) {
+  std::error_code ec;
+  const auto& old_path = pair.first;
+  const auto& new_path = pair.second;
+  if (ops.print) {
+    // Print the change.
+    std::println("{} -> {}", old_path.string(), new_path.string());
+  }
+  fs::rename(old_path, new_path, ec);
+  if (ec.value() != 0) {
+    return std::unexpected(ec);
   }
   return {};
 }
