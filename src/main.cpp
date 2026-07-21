@@ -7,6 +7,7 @@
 #include <expected>
 #include <print>
 #include <system_error>
+#include <utility>
 
 /// Organizational function that do what the program does (:p)
 ///   if the parameter is a directory (rename all regular files inside it).
@@ -27,10 +28,17 @@ std::expected<void, std::error_code> handle_directory(const argparse::ParsedArgs
 }
 
 /// Organizational function when the parameter is a file.
-std::expected<void, std::error_code> handle_file(/*const argparse::ParsedArgs& args*/) {
-  // TODO!.
-  std::println("Not implemented yet :3");
-  return {};
+std::expected<void, std::error_code> handle_file(const argparse::ParsedArgs& args) {
+  const auto absolute_path_result = utils::absolute_wrapper(args.path);
+  if (!absolute_path_result) {
+    return std::unexpected(absolute_path_result.error());
+  }
+  const auto paths_in_directory_result = utils::paths_in_directory(absolute_path_result.value().parent_path());
+  if (!paths_in_directory_result) {
+    return std::unexpected(paths_in_directory_result.error());
+  }
+  const auto random_path = utils::generate_random_path(paths_in_directory_result.value(), absolute_path_result.value());
+  return utils::rename(std::make_pair(args.path, random_path), {.nonstop = args.nonstop, .print = args.print_changes});
 }
 
 int main(int argc, char** argv) {
@@ -57,7 +65,7 @@ int main(int argc, char** argv) {
     std::println("{}", is_file_result.error().message());
     return EXIT_FAILURE;
   } else if (is_file_result.value()) {
-    const auto result = handle_file();
+    const auto result = handle_file(parsed_args);
     if (!result) {
       std::println("{}", result.error().message());
       return EXIT_FAILURE;
