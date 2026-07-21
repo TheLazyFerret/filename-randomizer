@@ -9,6 +9,19 @@
 #include <system_error>
 #include <utility>
 
+/// Print the version.
+void print_version() { std::println("filename-randomizer version: {}", PROJECT_VERSION); }
+
+/// Print the help.
+void print_help() {
+  std::println("Usage: filename-randomizer <options> path\n \
+    -v --version: Print the version of the program and exits.\n \
+    -h --help: Print this info and exits.\n \
+    -p --print-changes: rint a list of all the changes made.\n \
+    -n --nonstop If an error is encountered during the name change, it is ignored and the process continues.\n \
+    ");
+}
+
 /// Organizational function that do what the program does (:p)
 ///   if the parameter is a directory (rename all regular files inside it).
 std::expected<void, std::error_code> handle_directory(const argparse::ParsedArgs& args) {
@@ -48,6 +61,17 @@ int main(int argc, char** argv) {
     return EXIT_FAILURE;
   }
   const auto parsed_args = args_result.value();
+  if (parsed_args.help) {
+    print_help();
+    return EXIT_SUCCESS;
+  } else if (parsed_args.version) {
+    print_version();
+    return EXIT_SUCCESS;
+  }
+  if (parsed_args.path.empty()) {
+    std::println("{}", argparse::format_parse_error({"", argparse::ParseErrorType::NoPath}));
+    return EXIT_FAILURE;
+  }
   const auto is_directory_result = utils::is_directory_wrapper(parsed_args.path);
   if (!is_directory_result) {
     std::println("{}", is_directory_result.error().message());
