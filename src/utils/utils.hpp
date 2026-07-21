@@ -41,4 +41,6 @@ std::filesystem::path generate_random_path(const std::unordered_set<std::filesys
 
 std::unordered_set<std::filesystem::path> generate_random_path_set(const std::unordered_set<std::filesystem::path>&);
 
+std::expected<std::filesystem::path, std::error_code> absolute_wrapper(const std::filesystem::path&);
+
 } // namespace utils

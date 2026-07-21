@@ -184,3 +184,13 @@ std::set<std::pair<fs::path, fs::path>> utils::create_path_pair_set(
   }
   return set;
 }
+
+/// Return the parent path of a path.
+std::expected<fs::path, std::error_code> utils::absolute_wrapper(const fs::path& path) {
+  std::error_code ec;
+  auto absolute_path = fs::absolute(path, ec);
+  if (ec.value() != 0) {
+    return std::unexpected(ec);
+  }
+  return absolute_path;
+}
