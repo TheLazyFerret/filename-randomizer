@@ -47,9 +47,6 @@ std::expected<ParsedArgs, ParseError> argparse::parse_args(const std::vector<std
       else return std::unexpected<ParseError>({arg, ParseErrorType::UnexpectedArgument});
     }
   }
-  if (parsed_args.path.empty()) {
-    return std::unexpected<ParseError>({"", ParseErrorType::NoPath});
-  }
   return parsed_args;
 }
 
